@@ -54,22 +54,25 @@ const io = new Server(server, {
 
 app.use(cors());
 
-let users = [];
+let waitingUser = null;
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
-  users.push(socket.id);
 
-  if (users.length === 2) {
-    const [user1, user2] = users;
-    io.to(user1).emit("pair", { partnerId: user2 });
-    io.to(user2).emit("pair", { partnerId: user1 });
-    users = []; // Reset the users array
+  if (waitingUser) {
+    // Pair the current user with the waiting user
+    io.to(socket.id).emit("pair", { partnerId: waitingUser });
+    io.to(waitingUser).emit("pair", { partnerId: socket.id });
+    waitingUser = null;
+  } else {
+    waitingUser = socket.id;
   }
 
   socket.on("disconnect", () => {
     console.log("A user disconnected:", socket.id);
-    users = users.filter((id) => id !== socket.id);
+    if (waitingUser === socket.id) {
+      waitingUser = null;
+    }
   });
 });
 
