@@ -7,7 +7,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
-      origin: "https://new-omagle.onrender.com",
+      origin: "https://newproject-frontend.onrender.com",
       methods: ["GET", "POST", "PUT", "DELETE"],
       credentials: true,
     },
