@@ -1,41 +1,33 @@
 const express = require("express");
 const http = require("http");
+const socketIo = require("socket.io");
 const cors = require("cors");
 
 const app = express();
 const server = http.createServer(app);
+const io = socketIo(server);
 
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-const io = require("socket.io")(server, {
-  cors: {
-    origin: "*",
+app.use(
+  cors({
+    origin: "https://newproject-frontend.onrender.com",
     methods: ["GET", "POST"],
-  },
-});
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 io.on("connection", (socket) => {
-  socket.emit("me", socket.id);
-
-  socket.on("disconnect", () => {
-    socket.broadcast.emit("callEnded");
-  });
+  console.log("New user connected");
 
   socket.on("callUser", (data) => {
-    console.log(`Incoming call from ${data.from}`);
-    io.to(data.userToCall).emit("callUser", {
-      signal: data.signalData,
-      from: data.from,
-      name: data.name,
-    });
+    io.to(data.to).emit("ring", { from: data.from });
   });
 
-  socket.on("answerCall", (data) => {
-    console.log(`Answering call from ${data.from}`);
-    io.to(data.to).emit("callAccepted", data.signal);
+  socket.on("disconnect", () => {
+    console.log("User disconnected");
   });
 });
 
-server.listen(5000, () => console.log("server is running on port 5000"));
+server.listen(5000, () => {
+  console.log("Server is running on port 5000");
+});
