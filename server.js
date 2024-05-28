@@ -25,6 +25,9 @@ io.on("connection", (socket) => {
   socket.on("answerCall", ({ to, signal }) => {
     io.to(to).emit("callAccepted", signal);
   });
+  socket.on("endCall", ({ to }) => {
+    io.to(to).emit("callEnded");
+  });
 
   socket.on("disconnect", () => {
     console.log("A user disconnected:", socket.id);
