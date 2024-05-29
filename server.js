@@ -57,7 +57,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "https://newproject-frontend.onrender.com",
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   },
@@ -65,7 +65,7 @@ const io = new Server(server, {
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: "https://newproject-frontend.onrender.com",
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
