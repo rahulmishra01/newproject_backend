@@ -71,24 +71,28 @@ app.use(
   })
 );
 
-const activeRooms = [];
+let activeRooms = [];
 
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
 
   socket.on("join-room", () => {
-    let roomKey;
-    if (activeRooms.length === 0 || activeRooms[activeRooms.length - 1].length === 2) {
-      roomKey = `room-${activeRooms.length + 1}`;
-      activeRooms.push([socket.id]);
-    } else {
-      roomKey = `room-${activeRooms.length}`;
-      activeRooms[activeRooms.length - 1].push(socket.id);
+    let roomFound = false;
+    for (let room of activeRooms) {
+      if (room.length === 1) {
+        room.push(socket.id);
+        roomFound = true;
+        io.to(room[0]).emit("user-joined", { userId: socket.id });
+        io.to(socket.id).emit("room-assigned", { roomKey: room[0], users: room });
+        break;
+      }
     }
-    socket.join(roomKey);
-    socket.emit("room-assigned", { roomKey, users: activeRooms[activeRooms.length - 1] });
-    io.to(roomKey).emit("user-joined", { userId: socket.id });
-    console.log("activeRooms:", activeRooms);
+
+    if (!roomFound) {
+      const newRoom = [socket.id];
+      activeRooms.push(newRoom);
+      socket.emit("room-assigned", { roomKey: socket.id, users: newRoom });
+    }
   });
 
   socket.on("callUser", ({ from, to }) => {
@@ -105,17 +109,17 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log("A user disconnected:", socket.id);
-    activeRooms.forEach((room, index) => {
-      const userIndex = room.indexOf(socket.id);
-      if (userIndex !== -1) {
-        room.splice(userIndex, 1);
-        if (room.length === 0) {
-          activeRooms.splice(index, 1);
+    activeRooms = activeRooms.filter((room) => {
+      if (room.includes(socket.id)) {
+        const index = room.indexOf(socket.id);
+        room.splice(index, 1);
+        if (room.length === 1) {
+          io.to(room[0]).emit("user-disconnected", { userId: socket.id });
         }
+        return room.length > 0;
       }
+      return true;
     });
-    io.emit("user-disconnected", { userId: socket.id });
-    console.log("activeRooms after disconnect:", activeRooms);
   });
 });
 
