@@ -13,24 +13,42 @@ const io = new Server(server, {
   },
 });
 
-app.use(cors());
+app.use(cors({
+  origin: "https://newproject-frontend.onrender.com",
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true,
+}));
+
+const rooms = {};
 
 io.on("connection", (socket) => {
-  console.log("A user connected:", socket.id);
+  console.log("a user connected:", socket.id);
 
-  socket.on("callUser", ({ from, to }) => {
-    io.to(to).emit("ring", { from });
+  socket.on("createRoom", (roomId) => {
+    rooms[roomId] = [socket.id];
+    socket.join(roomId);
+    console.log(`Room created: ${roomId}`);
   });
 
-  socket.on("answerCall", ({ to, signal }) => {
-    io.to(to).emit("callAccepted", signal);
-  });
-  socket.on("endCall", ({ to }) => {
-    io.to(to).emit("callEnded");
+  socket.on("joinRoom", (roomId) => {
+    if (rooms[roomId] && rooms[roomId].length === 1) {
+      rooms[roomId].push(socket.id);
+      socket.join(roomId);
+      io.to(roomId).emit("userJoined", rooms[roomId]);
+      console.log(`User joined room: ${roomId}`);
+    } else {
+      socket.emit("roomError", "Room is full or does not exist.");
+    }
   });
 
   socket.on("disconnect", () => {
-    console.log("A user disconnected:", socket.id);
+    for (const roomId in rooms) {
+      rooms[roomId] = rooms[roomId].filter((id) => id !== socket.id);
+      if (rooms[roomId].length === 0) {
+        delete rooms[roomId];
+      }
+    }
+    console.log("user disconnected:", socket.id);
   });
 });
 
