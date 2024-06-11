@@ -15,19 +15,8 @@ const io = new Server(server, {
 
 app.use(cors());
 
-let waitingQueue = [];
-
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
-  socket.on("joinRandomChat", () => {
-    if (waitingQueue.length > 0) {
-      const peerId = waitingQueue.pop();
-      io.to(socket.id).emit("peerFound", peerId);
-      io.to(peerId).emit("peerFound", socket.id);
-    } else {
-      waitingQueue.push(socket.id);
-    }
-  });
 
   socket.on("callUser", ({ from, to }) => {
     io.to(to).emit("ring", { from });
@@ -42,7 +31,6 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", () => {
     console.log("A user disconnected:", socket.id);
-    waitingQueue = waitingQueue.filter((id) => id !== socket.id);
   });
 });
 
